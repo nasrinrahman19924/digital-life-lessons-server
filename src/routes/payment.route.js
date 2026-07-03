@@ -31,9 +31,9 @@ router.post("/create-checkout-session", async (req, res) => {
       ],
 
       success_url:
-        "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}",
+        "https://digital-life-lessons-client-b987.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}",
 
-      cancel_url: "http://localhost:3000/payment/cancel",
+      cancel_url: "https://digital-life-lessons-client-b987.vercel.app/payment/cancel",
     });
 
     res.send({
