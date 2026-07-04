@@ -60,7 +60,7 @@ router.get("/featured/all", async (req, res) => {
       .collection("lessons")
       .find({
         isFeatured: true,
-         visibility: "Public",
+        visibility: "Public",
       })
       .limit(6)
       .toArray();
@@ -259,7 +259,7 @@ router.put("/:id", verifyAuth, verifyOwner, async (req, res) => {
 /* ===========================
    Like Lesson
 =========================== */
-router.patch("/like/:id", async (req, res) => {
+router.patch("/like/:id", verifyAuth, async (req, res) => {
   try {
     const result = await db.collection("lessons").updateOne(
       {
@@ -300,7 +300,7 @@ router.delete("/:id", verifyAuth, verifyOwner, async (req, res) => {
 /* ===========================
    Favorite Lesson
 =========================== */
-router.post("/favorite", verifyAuth,  async (req, res) => {
+router.post("/favorite", verifyAuth, async (req, res) => {
   try {
     const favorite = req.body;
 
@@ -317,6 +317,18 @@ router.post("/favorite", verifyAuth,  async (req, res) => {
 
     const result = await db.collection("favorites").insertOne(favorite);
 
+    // Increase saved count
+    await db.collection("lessons").updateOne(
+      {
+        _id: new ObjectId(favorite.lessonId),
+      },
+      {
+        $inc: {
+          saved: 1,
+        },
+      },
+    );
+
     res.send(result);
   } catch (error) {
     res.status(500).send({
@@ -327,7 +339,7 @@ router.post("/favorite", verifyAuth,  async (req, res) => {
 /* ===========================
    Report Lesson
 =========================== */
-router.post("/report",verifyAuth, verifyOwner, async (req, res) => {
+router.post("/report", verifyAuth, async (req, res) => {
   try {
     const report = req.body;
 
@@ -368,7 +380,7 @@ router.post("/report",verifyAuth, verifyOwner, async (req, res) => {
 /* ===========================
    My Favorites
 =========================== */
-router.get("/favorites/:email",verifyAuth, verifyOwner, async (req, res) => {
+router.get("/favorites/:email", verifyAuth, async (req, res) => {
   try {
     const favorites = await db
       .collection("favorites")
@@ -391,9 +403,31 @@ router.get("/favorites/:email",verifyAuth, verifyOwner, async (req, res) => {
 =========================== */
 router.delete("/favorite/:id", verifyAuth, async (req, res) => {
   try {
+    const favorite = await db.collection("favorites").findOne({
+      _id: new ObjectId(req.params.id),
+    });
+
+    if (!favorite) {
+      return res.status(404).send({
+        message: "Favorite not found",
+      });
+    }
+
     const result = await db.collection("favorites").deleteOne({
       _id: new ObjectId(req.params.id),
     });
+
+    // Decrease saved count
+    await db.collection("lessons").updateOne(
+      {
+        _id: new ObjectId(favorite.lessonId),
+      },
+      {
+        $inc: {
+          saved: -1,
+        },
+      },
+    );
 
     res.send(result);
   } catch (error) {
@@ -407,7 +441,7 @@ router.delete("/favorite/:id", verifyAuth, async (req, res) => {
    My Lessons
   
 =========================== */
-router.get("/:email", async (req, res) => {
+router.get("/:email", verifyAuth, async (req, res) => {
   try {
     const lessons = await db
       .collection("lessons")
