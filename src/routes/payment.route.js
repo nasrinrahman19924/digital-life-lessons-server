@@ -75,7 +75,7 @@ router.get("/verify", async (req, res) => {
       });
     }
 
-    // Get Stripe Session
+    // Stripe Session
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status !== "paid") {
@@ -94,28 +94,20 @@ router.get("/verify", async (req, res) => {
         $set: {
           role: "premium",
         },
-      }
+      },
     );
 
-    res.send({
+    return res.send({
       success: true,
-      message: "Premium Activated Successfully",
+      message: "Premium activated successfully",
     });
   } catch (err) {
-    res.status(500).send({
+    console.error(err);
+
+    return res.status(500).send({
       success: false,
       message: err.message,
     });
   }
 });
-
 export default router;
-
-
-
-
-
-
-
-
-
