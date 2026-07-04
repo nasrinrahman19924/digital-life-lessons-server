@@ -1,7 +1,6 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { db } from "../config/db.js";
-import { verifyAdmin } from "../middlewares/verifyAdmin.js";
 import { verifyAuth, verifyAdmin } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -180,7 +179,6 @@ router.get("/reports", verifyAuth, verifyAdmin, async (req, res) => {
 });
 router.delete(
   "/report/delete/:id",
-  verifyToken,
   verifyAdmin,
   async (req, res) => {
     const result = await db.collection("lessons").deleteOne({
