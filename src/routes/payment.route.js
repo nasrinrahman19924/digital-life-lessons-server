@@ -19,21 +19,23 @@ router.post("/create-checkout-session", async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: "bdt",
+            currency: "usd",
+
             product_data: {
-              name: "Digital Life Lessons Premium",
-              description: "Lifetime Premium Membership",
+              name: "Premium Membership",
             },
-            unit_amount: 150000, // ৳1500
+
+            // 1500 BDT ≈ 15 USD (example)
+            unit_amount: 1500,
           },
+
           quantity: 1,
         },
       ],
 
-      success_url:
-        "https://digital-life-lessons-client-b987.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}",
+      success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
 
-      cancel_url: "https://digital-life-lessons-client-b987.vercel.app/payment/cancel",
+      cancel_url: `${process.env.CLIENT_URL}/pricing`,
     });
 
     res.send({
@@ -41,7 +43,7 @@ router.post("/create-checkout-session", async (req, res) => {
     });
   } catch (err) {
     res.status(500).send({
-      error: err.message,
+      message: err.message,
     });
   }
 });

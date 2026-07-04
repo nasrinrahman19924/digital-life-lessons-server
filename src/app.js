@@ -9,6 +9,7 @@ import paymentRoute from "./routes/payment.route.js";
 import lessonRouter from "./routes/lesson.route.js";
 import userRoute from "./routes/user.route.js";
 
+
 const app = express();
 
 app.use(
@@ -17,6 +18,14 @@ app.use(
     credentials: true,
   }),
 );
+
+app.use(cookieParser());
+
+
+app.use("/api/payment/webhook", express.raw({ type: "application/json" }));
+
+
+app.use(express.json());
 
 app.use(cookieParser());
 

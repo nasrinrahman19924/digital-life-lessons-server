@@ -1,16 +1,18 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import { db } from "../config/db.js";
+import { verifyAdmin } from "../middlewares/verifyAdmin.js";
+import { verifyAuth, verifyAdmin } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/users", async (req, res) => {
+router.get("/users", verifyAuth, verifyAdmin, async (req, res) => {
   const users = await db.collection("user").find().toArray();
 
   const newUsers = await Promise.all(
     users.map(async (user) => {
       const totalLessons = await db.collection("lessons").countDocuments({
-        email: user.email,
+        authorEmail: user.email,
       });
 
       return {
@@ -23,39 +25,101 @@ router.get("/users", async (req, res) => {
   res.send(newUsers);
 });
 
-router.patch("/users/:id", async (req, res) => {
-  const result = await db.collection("user").updateOne(
-    {
-      _id: new ObjectId(req.params.id),
-    },
-    {
-      $set: {
-        role: "admin",
-      },
-    },
-  );
+router.get("/analytics", async (req, res) => {
+  try {
+    const users = await db.collection("user").countDocuments();
 
-  res.send(result);
+    const lessons = await db.collection("lessons").countDocuments();
+
+    const publicLessons = await db.collection("lessons").countDocuments({
+      visibility: "Public",
+    });
+
+    const premiumLessons = await db.collection("lessons").countDocuments({
+      isPremium: true,
+    });
+
+    const reports = await db.collection("reports").countDocuments();
+
+    const featured = await db.collection("lessons").countDocuments({
+      isFeatured: true,
+    });
+
+    res.send({
+      users,
+      lessons,
+      publicLessons,
+      premiumLessons,
+      reports,
+      featured,
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
 });
 
-router.get("/lessons", async (req, res) => {
+router.patch("/users/:id", verifyAuth, verifyAdmin, async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    const result = await db.collection("user").updateOne(
+      {
+        _id: new ObjectId(req.params.id),
+      },
+      {
+        $set: {
+          role,
+        },
+      },
+    );
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+});
+
+router.patch("/featured/:id",verifyAuth, verifyAdmin, async (req, res) => {
+  try {
+    const { isFeatured } = req.body;
+
+    const result = await db.collection("lessons").updateOne(
+      {
+        _id: new ObjectId(req.params.id),
+      },
+      {
+        $set: {
+          isFeatured,
+        },
+      },
+    );
+
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
+});
+
+router.get("/lessons", verifyAuth, verifyAdmin, async (req, res) => {
   const lessons = await db.collection("lessons").find().toArray();
   res.send(lessons);
 });
-
-router.patch("/featured/:id", async (req, res) => {
-  const result = await db.collection("lessons").updateOne(
-    {
+router.delete("/lessons/:id", verifyAuth, verifyAdmin, async (req, res) => {
+  try {
+    const result = await db.collection("lessons").deleteOne({
       _id: new ObjectId(req.params.id),
-    },
-    {
-      $set: {
-        isFeatured: true,
-      },
-    },
-  );
+    });
 
-  res.send(result);
+    res.send(result);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
 });
 
 router.put("/profile", async (req, res) => {
@@ -76,7 +140,7 @@ router.put("/profile", async (req, res) => {
   res.send(result);
 });
 
-router.patch("/review/:id", async (req, res) => {
+router.patch("/review/:id",verifyAuth, verifyAdmin, async (req, res) => {
   const result = await db.collection("lessons").updateOne(
     {
       _id: new ObjectId(req.params.id),
@@ -90,23 +154,47 @@ router.patch("/review/:id", async (req, res) => {
 
   res.send(result);
 });
-router.get("/reports", async (req, res) => {
-  const reports = await db.collection("reports").find().toArray();
+router.get("/reports", verifyAuth, verifyAdmin, async (req, res) => {
+  try {
+    const reports = await db.collection("reports").find().toArray();
 
-  res.send(reports);
+    const data = await Promise.all(
+      reports.map(async (report) => {
+        const lesson = await db.collection("lessons").findOne({
+          _id: new ObjectId(report.lessonId),
+        });
+
+        return {
+          ...report,
+          lesson,
+        };
+      }),
+    );
+
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message,
+    });
+  }
 });
-router.delete("/report/delete/:id", async (req, res) => {
-  const result = await db.collection("lessons").deleteOne({
-    _id: new ObjectId(req.params.id),
-  });
+router.delete(
+  "/report/delete/:id",
+  verifyToken,
+  verifyAdmin,
+  async (req, res) => {
+    const result = await db.collection("lessons").deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
 
-  await db.collection("reports").deleteMany({
-    lessonId: req.params.id,
-  });
+    await db.collection("reports").deleteMany({
+      lessonId: req.params.id,
+    });
 
-  res.send(result);
-});
-router.delete("/report/ignore/:id", async (req, res) => {
+    res.send(result);
+  },
+);
+router.delete("/report/ignore/:id",verifyAuth, verifyAdmin, async (req, res) => {
   const result = await db.collection("reports").deleteOne({
     _id: new ObjectId(req.params.id),
   });
@@ -114,7 +202,7 @@ router.delete("/report/ignore/:id", async (req, res) => {
   res.send(result);
 });
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id",verifyAuth, verifyAdmin, async (req, res) => {
   const result = await db.collection("user").deleteOne({
     _id: new ObjectId(req.params.id),
   });
