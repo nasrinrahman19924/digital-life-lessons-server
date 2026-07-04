@@ -1,13 +1,24 @@
 import express from "express";
 import Stripe from "stripe";
+import { db } from "../config/db.js";
 
 const router = express.Router();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+/* =====================================
+   Create Checkout Session
+===================================== */
 router.post("/create-checkout-session", async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).send({
+        success: false,
+        message: "Email is required",
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -25,7 +36,7 @@ router.post("/create-checkout-session", async (req, res) => {
               name: "Premium Membership",
             },
 
-            // 1500 BDT ≈ 15 USD (example)
+            // $15.00
             unit_amount: 1500,
           },
 
@@ -39,13 +50,72 @@ router.post("/create-checkout-session", async (req, res) => {
     });
 
     res.send({
+      success: true,
       url: session.url,
     });
   } catch (err) {
     res.status(500).send({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+/* =====================================
+   Verify Payment & Upgrade User
+===================================== */
+router.get("/verify", async (req, res) => {
+  try {
+    const { session_id } = req.query;
+
+    if (!session_id) {
+      return res.status(400).send({
+        success: false,
+        message: "Session ID is required",
+      });
+    }
+
+    // Get Stripe Session
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    if (session.payment_status !== "paid") {
+      return res.status(400).send({
+        success: false,
+        message: "Payment not completed",
+      });
+    }
+
+    // Update User Role
+    await db.collection("user").updateOne(
+      {
+        email: session.customer_email,
+      },
+      {
+        $set: {
+          role: "premium",
+        },
+      }
+    );
+
+    res.send({
+      success: true,
+      message: "Premium Activated Successfully",
+    });
+  } catch (err) {
+    res.status(500).send({
+      success: false,
       message: err.message,
     });
   }
 });
 
 export default router;
+
+
+
+
+
+
+
+
+
