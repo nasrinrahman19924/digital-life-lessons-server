@@ -2,47 +2,56 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { toNodeHandler } from "better-auth/node";
-import { auth } from "./auth/auth.js";
-import adminRoute from "./routes/admin.route.js";
-import paymentRoute from "./routes/payment.route.js";
 import lessonRouter from "./routes/lesson.route.js";
 import userRoute from "./routes/user.route.js";
-
+import adminRoute from "./routes/admin.route.js";
+import paymentRoute from "./routes/payment.route.js";
+import commentRoute from "./routes/comment.route.js";
 
 const app = express();
 
+/* -----------------------------
+   CORS
+----------------------------- */
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
-  }),
+  })
 );
 
+/* -----------------------------
+   Middlewares
+----------------------------- */
 app.use(cookieParser());
-
-
-app.use("/api/payment/webhook", express.raw({ type: "application/json" }));
-
-
 app.use(express.json());
 
-app.use(cookieParser());
+/* -----------------------------
+   Stripe Webhook
+----------------------------- */
+app.use(
+  "/api/payment/webhook",
+  express.raw({
+    type: "application/json",
+  })
+);
 
-app.use(express.json());
 
-app.all("/api/auth/{*any}", toNodeHandler(auth));
 
-// Lesson Routes
-
+/* -----------------------------
+   Routes
+----------------------------- */
+app.use("/api/users", userRoute);
 app.use("/api/lessons", lessonRouter);
-
 app.use("/api/admin", adminRoute);
 app.use("/api/payment", paymentRoute);
-app.use("/api/users", userRoute);
+app.use("/api/comments", commentRoute);
 
+/* -----------------------------
+   Health Check
+----------------------------- */
 app.get("/", (req, res) => {
-  res.send("Server Running");
+  res.send("🚀 Digital Life Lessons Server Running...");
 });
 
 export default app;

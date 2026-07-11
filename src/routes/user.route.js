@@ -34,13 +34,7 @@ router.get("/:email", async (req, res) => {
   res.send(user);
 });
 
-router.get("/:email", async (req, res) => {
-  const user = await db.collection("user").findOne({
-    email: req.params.email,
-  });
 
-  res.send(user);
-});
 router.patch("/make-admin", async (req, res) => {
   const { email } = req.body;
 
@@ -56,6 +50,32 @@ router.patch("/make-admin", async (req, res) => {
   );
 
   res.send(result);
+});
+router.patch("/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { name, image } = req.body;
+
+    const result = await db.collection("user").updateOne(
+      { email },
+      {
+        $set: {
+          name,
+          image,
+        },
+      },
+    );
+
+    res.send({
+      success: true,
+      result,
+    });
+  } catch (err) {
+    res.status(500).send({
+      success: false,
+      message: err.message,
+    });
+  }
 });
 
 export default router;

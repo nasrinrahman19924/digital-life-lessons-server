@@ -381,21 +381,20 @@ router.post("/report", verifyAuth, async (req, res) => {
    My Favorites
 =========================== */
 router.get("/favorites/:email", verifyAuth, async (req, res) => {
-  try {
-    const favorites = await db
-      .collection("favorites")
-      .find({
-        email: req.params.email,
-      })
-      .sort({
-        _id: -1,
-      })
-      .toArray();
-
-    res.send(favorites);
-  } catch (err) {
-    res.status(500).send(err);
+  if (req.user.email !== req.params.email) {
+    return res.status(403).send({
+      message: "Forbidden",
+    });
   }
+
+  const favorites = await db
+    .collection("favorites")
+    .find({
+      email: req.user.email,
+    })
+    .toArray();
+
+  res.send(favorites);
 });
 
 /* ===========================
@@ -441,12 +440,18 @@ router.delete("/favorite/:id", verifyAuth, async (req, res) => {
    My Lessons
   
 =========================== */
-router.get("/:email", verifyAuth, async (req, res) => {
+router.get("/my/:email", verifyAuth, async (req, res) => {
   try {
+    if (req.user.email !== req.params.email) {
+      return res.status(403).send({
+        message: "Forbidden",
+      });
+    }
+
     const lessons = await db
       .collection("lessons")
       .find({
-        authorEmail: req.params.email,
+        authorEmail: req.user.email,
       })
       .sort({
         createdAt: -1,

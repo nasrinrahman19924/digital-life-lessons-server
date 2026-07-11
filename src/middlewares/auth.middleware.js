@@ -7,7 +7,7 @@ export const verifyAuth = async (req, res, next) => {
       headers: req.headers,
     });
 
-    if (!session) {
+    if (!session?.user) {
       return res.status(401).send({
         message: "Unauthorized",
       });
@@ -17,12 +17,13 @@ export const verifyAuth = async (req, res, next) => {
 
     next();
   } catch (err) {
+    console.log("VerifyAuth Error:", err);
+
     res.status(401).send({
       message: "Unauthorized",
     });
   }
 };
-
 export const verifyAdmin = async (req, res, next) => {
   try {
     const user = await db.collection("user").findOne({

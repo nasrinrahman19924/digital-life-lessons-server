@@ -80,7 +80,7 @@ router.patch("/users/:id", verifyAuth, verifyAdmin, async (req, res) => {
   }
 });
 
-router.patch("/featured/:id",verifyAuth, verifyAdmin, async (req, res) => {
+router.patch("/featured/:id", verifyAuth, verifyAdmin, async (req, res) => {
   try {
     const { isFeatured } = req.body;
 
@@ -139,7 +139,7 @@ router.put("/profile", async (req, res) => {
   res.send(result);
 });
 
-router.patch("/review/:id",verifyAuth, verifyAdmin, async (req, res) => {
+router.patch("/review/:id", verifyAuth, verifyAdmin, async (req, res) => {
   const result = await db.collection("lessons").updateOne(
     {
       _id: new ObjectId(req.params.id),
@@ -179,6 +179,7 @@ router.get("/reports", verifyAuth, verifyAdmin, async (req, res) => {
 });
 router.delete(
   "/report/delete/:id",
+  verifyAuth,
   verifyAdmin,
   async (req, res) => {
     const result = await db.collection("lessons").deleteOne({
@@ -192,15 +193,20 @@ router.delete(
     res.send(result);
   },
 );
-router.delete("/report/ignore/:id",verifyAuth, verifyAdmin, async (req, res) => {
-  const result = await db.collection("reports").deleteOne({
-    _id: new ObjectId(req.params.id),
-  });
+router.delete(
+  "/report/ignore/:id",
+  verifyAuth,
+  verifyAdmin,
+  async (req, res) => {
+    const result = await db.collection("reports").deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
 
-  res.send(result);
-});
+    res.send(result);
+  },
+);
 
-router.delete("/users/:id",verifyAuth, verifyAdmin, async (req, res) => {
+router.delete("/users/:id", verifyAuth, verifyAdmin, async (req, res) => {
   const result = await db.collection("user").deleteOne({
     _id: new ObjectId(req.params.id),
   });

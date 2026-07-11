@@ -87,12 +87,12 @@ router.get("/verify", async (req, res) => {
 
     // Update User Role
     await db.collection("user").updateOne(
-      {
-        email: session.customer_email,
-      },
+      { email: session.customer_email },
       {
         $set: {
           role: "premium",
+          isPremium: true,
+          premiumSince: new Date(),
         },
       },
     );
