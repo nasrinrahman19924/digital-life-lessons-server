@@ -26,34 +26,160 @@ router.get("/users", verifyAuth, verifyAdmin, async (req, res) => {
 
 router.get("/analytics", async (req, res) => {
   try {
-    const users = await db.collection("user").countDocuments();
+    const usersCollection = db.collection("user");
+    const lessonsCollection = db.collection("lessons");
+    const reportsCollection = db.collection("reports");
 
-    const lessons = await db.collection("lessons").countDocuments();
+    // ========= Counts =========
 
-    const publicLessons = await db.collection("lessons").countDocuments({
+    const users = await usersCollection.countDocuments();
+
+    const lessons = await lessonsCollection.countDocuments();
+
+    const publicLessons = await lessonsCollection.countDocuments({
       visibility: "Public",
     });
 
-    const premiumLessons = await db.collection("lessons").countDocuments({
+    const privateLessons = await lessonsCollection.countDocuments({
+      visibility: "Private",
+    });
+
+    const premiumLessons = await lessonsCollection.countDocuments({
       isPremium: true,
     });
 
-    const reports = await db.collection("reports").countDocuments();
-
-    const featured = await db.collection("lessons").countDocuments({
+    const featured = await lessonsCollection.countDocuments({
       isFeatured: true,
     });
+
+    const reports = await reportsCollection.countDocuments();
+
+    // ========= Today's Lessons =========
+
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+    const todayLessons = await lessonsCollection.countDocuments({
+      createdAt: {
+        $gte: today,
+      },
+    });
+
+    // ========= Latest Lessons =========
+
+    const latestLessons = await lessonsCollection
+      .find({})
+      .sort({
+        createdAt: -1,
+      })
+      .limit(5)
+      .project({
+        title: 1,
+        authorName: 1,
+        createdAt: 1,
+      })
+      .toArray();
+
+    // ========= Most Active Contributors =========
+
+    const contributors = await lessonsCollection
+      .aggregate([
+        {
+          $group: {
+            _id: "$authorEmail",
+            name: {
+              $first: "$authorName",
+            },
+            image: {
+              $first: "$authorImage",
+            },
+            totalLessons: {
+              $sum: 1,
+            },
+          },
+        },
+        {
+          $sort: {
+            totalLessons: -1,
+          },
+        },
+        {
+          $limit: 5,
+        },
+      ])
+      .toArray();
+
+    // ========= Lesson Growth =========
+
+    const lessonGrowth = await lessonsCollection
+      .aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m",
+                date: "$createdAt",
+              },
+            },
+            lessons: {
+              $sum: 1,
+            },
+          },
+        },
+        {
+          $sort: {
+            _id: 1,
+          },
+        },
+      ])
+      .toArray();
+
+    // ========= User Growth =========
+
+    const userGrowth = await usersCollection
+      .aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m",
+                date: "$createdAt",
+              },
+            },
+            users: {
+              $sum: 1,
+            },
+          },
+        },
+        {
+          $sort: {
+            _id: 1,
+          },
+        },
+      ])
+      .toArray();
 
     res.send({
       users,
       lessons,
       publicLessons,
+      privateLessons,
       premiumLessons,
-      reports,
       featured,
+      reports,
+      todayLessons,
+      latestLessons,
+      contributors,
+      lessonGrowth,
+      userGrowth,
     });
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    console.log(err);
+
+    res.status(500).send({
+      message: err.message,
+    });
   }
 });
 
