@@ -7,6 +7,8 @@ import userRoute from "./routes/user.route.js";
 import adminRoute from "./routes/admin.route.js";
 import paymentRoute from "./routes/payment.route.js";
 import commentRoute from "./routes/comment.route.js";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./auth/auth.js";
 
 const app = express();
 
@@ -41,6 +43,7 @@ app.use(
 /* -----------------------------
    Routes
 ----------------------------- */
+app.use("/api/auth", toNodeHandler(auth));
 app.use("/api/users", userRoute);
 app.use("/api/lessons", lessonRouter);
 app.use("/api/admin", adminRoute);
