@@ -2,28 +2,26 @@ import { auth } from "../auth/auth.js";
 import { db } from "../config/db.js";
 
 export const verifyAuth = async (req, res, next) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
+   console.log("🔥 verifyAuth called");
+  
+  console.log("COOKIE =", req.headers.cookie);
 
-    if (!session?.user) {
-      return res.status(401).send({
-        message: "Unauthorized",
-      });
-    }
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
 
-    req.user = session.user;
+  console.log("SESSION =", session);
 
-    next();
-  } catch (err) {
-    console.log("VerifyAuth Error:", err);
-
-    res.status(401).send({
+  if (!session?.user) {
+    return res.status(401).send({
       message: "Unauthorized",
     });
   }
+
+  req.user = session.user;
+  next();
 };
+
 export const verifyAdmin = async (req, res, next) => {
   try {
     const user = await db.collection("user").findOne({
