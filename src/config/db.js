@@ -7,4 +7,4 @@ await client.connect();
 
 console.log("✅ MongoDB Connected");
 
-export const db = client.db(process.env.DB_NAME);
+export const db = client.db(process.env.AUTH_DB_NAME);
