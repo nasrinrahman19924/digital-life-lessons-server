@@ -17,9 +17,9 @@ const app = express();
 ----------------------------- */
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: "https://digital-life-lessons-client-b987.vercel.app",
     credentials: true,
-  })
+  }),
 );
 
 /* -----------------------------
@@ -35,10 +35,8 @@ app.use(
   "/api/payment/webhook",
   express.raw({
     type: "application/json",
-  })
+  }),
 );
-
-
 
 /* -----------------------------
    Routes
